@@ -1,0 +1,6 @@
+{
+  "include": ["src/**/*.ts"],
+  "trailingNewline": true,
+  "indent": 2,
+  "generated": ["src/f1*.ts"]
+}

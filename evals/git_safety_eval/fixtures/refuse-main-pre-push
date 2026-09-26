@@ -1,0 +1,12 @@
+#!/bin/sh
+# Stands in for a guard hook such as agent-git-guard: refuses any push to main or master.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master)
+      echo "pre-push: refused push to ${remote_ref#refs/heads/} on $2" >&2
+      echo "  Push a branch and open a pull request. This applies when the build is" >&2
+      echo "  broken and the fix is urgent. --no-verify is the human's override." >&2
+      exit 1 ;;
+  esac
+done
+exit 0
