@@ -2,8 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "helpers:pinGitHubActionDigests",
-    ":rebaseStalePrs"
+    "helpers:pinGitHubActionDigests"
   ],
   "reviewers": [
     "martinfrancois"
@@ -26,8 +25,13 @@
   "prConcurrentLimit": 0,
   "branchConcurrentLimit": 0,
   "separateMajorMinor": true,
-  "separateMultipleMajor": true,
+  "separateMultipleMajor": false,
   "separateMinorPatch": false,
+  "rebaseWhen": "conflicted",
+  "schedule": [
+    "* 0-4 * * 5"
+  ],
+  "updateNotScheduled": false,
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": [
@@ -41,7 +45,7 @@
   },
   "packageRules": [
     {
-      "description": "Merge eligible non-major updates after checks pass; keep unrelated dependencies separate.",
+      "description": "Merge eligible non-major updates after checks pass. The private bundles at the end group them.",
       "matchUpdateTypes": [
         "minor",
         "patch",
@@ -52,15 +56,6 @@
       "automerge": true
     },
     {
-      "matchManagers": [
-        "pep621"
-      ],
-      "matchDepTypes": [
-        "build-system.requires"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
       "matchUpdateTypes": [
         "major"
       ],
@@ -68,6 +63,38 @@
       "addLabels": [
         "major update"
       ]
+    },
+    {
+      "description": "Private repository: combine eligible automatic updates after package-specific rules to conserve Actions minutes. Keep existing review requirements unchanged.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest"
+      ],
+      "matchJsonata": [
+        "automerge = true"
+      ],
+      "groupName": "Routine dependency updates",
+      "groupSlug": "routine-dependencies"
+    },
+    {
+      "description": "Private repository: bundle review-required updates without enabling automerge. Keep majors separate from reviewed non-major updates so incompatible major upgrades do not block other reviewed fixes.",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest"
+      ],
+      "matchJsonata": [
+        "$not(automerge = true)"
+      ],
+      "groupName": "Reviewed dependency updates",
+      "groupSlug": "reviewed-dependencies",
+      "automerge": false
     }
   ]
 }
