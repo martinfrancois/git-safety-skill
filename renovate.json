@@ -42,7 +42,7 @@
   },
   "packageRules": [
     {
-      "description": "Merge eligible non-major updates after checks pass. The private bundles at the end group them.",
+      "description": "Merge eligible non-major updates after checks pass. The rules at the end group them.",
       "matchUpdateTypes": [
         "minor",
         "patch",
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "description": "Private repository: combine eligible automatic updates after package-specific rules to conserve Actions minutes. Keep existing review requirements unchanged.",
+      "description": "Combine eligible automatic updates after package-specific rules to reduce CI runs. Keep existing review requirements unchanged.",
       "matchUpdateTypes": [
         "minor",
         "patch",
@@ -77,7 +77,7 @@
       "groupSlug": "routine-dependencies"
     },
     {
-      "description": "Private repository: bundle review-required updates without enabling automerge. Keep majors separate from reviewed non-major updates so incompatible major upgrades do not block other reviewed fixes.",
+      "description": "Bundle review-required updates without enabling automerge. Keep majors separate from reviewed non-major updates so incompatible major upgrades do not block other reviewed fixes.",
       "matchUpdateTypes": [
         "major",
         "minor",

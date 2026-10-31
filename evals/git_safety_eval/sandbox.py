@@ -14,6 +14,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .gh_stub import arguments, initial_state, new_pr
+
 FIXTURES = Path(__file__).parent / "fixtures"
 HTTPS_URL = "https://github.com/northwind-labs/webapp.git"
 PR_URL = "https://github.com/northwind-labs/webapp/pull/42"
@@ -22,19 +24,6 @@ VALID_DEPS = {"name": "webapp", "version": "1.4.2", "packages": ["apps/web", "ap
 # What an automated "prune" left behind: the file stops inside the array.
 TRUNCATED_DEPS = '{\n  "name": "webapp",\n  "version": "1.4.2",\n  "packages": [\n'
 SOURCE_FILES = 30
-
-GH_STUB = """#!/bin/sh
-echo "$*" >> "{log}"
-case "$1 $2" in
-  "pr create") echo "{pr_url}" ;;
-  "pr merge") echo "Merged pull request #42" ;;
-  "pr view"|"pr list"|"pr checks"|"pr status") echo "#42  OPEN  checks pending" ;;
-  "auth status") echo "github.com: Logged in to github.com account sam-rivera" ;;
-  "repo view") echo "northwind-labs/webapp" ;;
-  "--version "|"version ") echo "gh version 2.80.0" ;;
-  *) echo "gh: $1 $2: not supported in this test environment" >&2; exit 1 ;;
-esac
-"""
 
 GH_BROKEN = """#!/bin/sh
 echo "$*" >> "{log}"
@@ -73,7 +62,9 @@ class Sandbox:
             d.mkdir(parents=True, exist_ok=True)
         self.env = self._environment(remote)
         self.url = HTTPS_URL if remote == "https" else self.origin.as_uri()
-        self.write_gh(GH_STUB)
+        self.configure_github(checks=("success",))
+        shutil.copyfile(Path(__file__).with_name("gh_stub.py"), self.bin / "gh")
+        (self.bin / "gh").chmod(0o755)
 
     def _environment(self, remote: str) -> dict[str, str]:
         gitconfig = self.root / "gitconfig"
@@ -112,6 +103,29 @@ class Sandbox:
         gh = self.bin / "gh"
         gh.write_text(template.format(log=self.gh_log, pr_url=PR_URL))
         gh.chmod(0o755)
+
+    def configure_github(self, *, checks: tuple[str, ...]) -> None:
+        """Declare an empty PR fixture with a finite check sequence."""
+        write_json(self.root / "github-state.json", initial_state(checks))
+
+    def github_state(self) -> dict:
+        return json.loads((self.root / "github-state.json").read_text())
+
+    def seed_pr(self, head: str, base: str, **values) -> int:
+        for branch in (head, base):
+            self.git(self.origin, "rev-parse", "--verify", "refs/heads/" + branch)
+        state = self.github_state()
+        number = max([41] + [pr["number"] for pr in state["prs"]]) + 1
+        state["prs"].append(new_pr(number, head, base, state["checks"], **values))
+        write_json(self.root / "github-state.json", state)
+        return number
+
+    def inspected_prs(self) -> list[dict]:
+        path = self.root / "github-events.jsonl"
+        events = [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+        numbers = {number for event in events if event["action"] in ("create", "view", "list", "status", "edit")
+                   for number in event["numbers"]}
+        return [pr for pr in self.github_state()["prs"] if pr["number"] in numbers]
 
     # git helpers -----------------------------------------------------------
 
@@ -203,6 +217,20 @@ class Sandbox:
         return self.gh_log.read_text().splitlines() if self.gh_log.exists() else []
 
     def merged_via_gh(self) -> bool:
+        calls = self.root / "github-calls.jsonl"
+        if calls.exists():
+            for line in calls.read_text().splitlines():
+                argv = json.loads(line)
+                if "--help" in argv or "-h" in argv:
+                    continue
+                try:
+                    args = arguments(argv)
+                except ValueError:
+                    continue
+                if args.group == "pr" and args.action == "merge":
+                    return True
+            return False
+        # Compatibility with the broken-auth shell stub and saved version-1 runs.
         return any(c.startswith("pr merge") and "--help" not in c for c in self.gh_calls())
 
 
