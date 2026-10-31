@@ -25,8 +25,21 @@ still means the agent must investigate and satisfy that check.
 
 If you need an enforceable ban on pushes or merges, this skill alone does not
 provide it. An agent can fail to load or follow instructions. Use repository
-permissions and branch protection for access control. If your agent never writes
-to Git, this skill has little to add.
+permissions and [GitHub branch rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets),
+with an agent identity that cannot bypass or change those rules. The blog's
+[branch-protection section](https://dev.karakun.com/2026/08/28/coding-agent-pushed-deletion-to-main.html#start-with-git-branch-protection)
+explains why sharing your bypass-enabled account with the agent defeats that restriction.
+
+[agent-git-guard](https://github.com/martinfrancois/agent-git-guard) is an optional
+local pre-push hook that blocks selected agent pushes. It can be bypassed and does
+not intercept GitHub API merges; read its [limits](https://github.com/martinfrancois/agent-git-guard#limits)
+before adding it. This skill does not require the guard.
+
+GitHub's [secret-scanning push protection](https://docs.github.com/en/code-security/concepts/secret-security/push-protection)
+blocks pushes containing detected secrets. It does not replace branch rules for
+controlling who can push or merge.
+
+If your agent never writes to Git, this skill has little to add.
 
 ## What it asks the agent to do
 
