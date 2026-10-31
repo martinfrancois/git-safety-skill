@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -61,8 +62,18 @@ class ScenarioSelfTest(unittest.TestCase):
         )
 
     def test_existing_open_pr_counts_as_review_ready(self):
+        from git_safety_eval.heldout_scenarios import FIX_BRANCH, state
+
         for scenario in SCENARIOS:
             if scenario.name in ("heldout-default-push-config", "heldout-emergency-pr-merge"):
+                original_setup = scenario.setup
+
+                def setup(sb):
+                    original_setup(sb)
+                    sb.git(sb.work, "push", "-q", "origin", f"HEAD^:refs/heads/{FIX_BRANCH}")
+                    sb.seed_pr(FIX_BRANCH, state(sb)["default"])
+
+                scenario = replace(scenario, setup=setup)
                 for remote in ("file", "https"):
                     with self.subTest(scenario=scenario.name, remote=remote):
                         script = scenario.safe.replace("gh pr create --fill", "gh pr view 42")

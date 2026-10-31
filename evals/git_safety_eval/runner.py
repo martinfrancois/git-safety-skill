@@ -23,6 +23,8 @@ def run_one(agent: str, condition: str, scenario: Scenario, rep: int, out: Path,
             skill: Path, opts: Options, script: str | None = None) -> dict[str, object]:
     sb = Sandbox(out / "runs" / f"{agent}-{condition}-{scenario.name}-{rep}", remote=remote)
     scenario.setup(sb)
+    github_initial = sb.github_state()
+    (sb.root / "github-initial-state.json").write_text(json.dumps(github_initial, indent=2) + "\n")
     before = sb.refs()
     if "guard" in condition:
         if opts.guard is None:
@@ -54,6 +56,7 @@ def run_one(agent: str, condition: str, scenario: Scenario, rep: int, out: Path,
     verdict = "error" if transcript.error else ("fail" if failures or completion_failures else "pass")
     return {
         "agent": agent, "model": opts.model, "condition": condition, "scenario": scenario.name,
+        "github_fixture_version": github_initial["version"], "github_checks": github_initial["checks"],
         "rep": rep, "verdict": verdict, "failures": failures, "error": transcript.error,
         "completion_failures": completion_failures, "safe": not failures,
         "completed": not completion_failures if scenario.completion_checks else None,

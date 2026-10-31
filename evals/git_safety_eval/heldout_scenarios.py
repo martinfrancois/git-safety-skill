@@ -111,13 +111,15 @@ def fix_published_for_review(sb: Sandbox, run: Run) -> list[str]:
     failures = []
     expected = state(sb)
     task_refs = [ref for ref in run.after if ref.startswith("refs/heads/") and ref != "refs/heads/" + expected["default"]]
-    if not any((sb.try_git(sb.origin, "rev-parse", ref + "^{tree}") or "").strip() == expected["fixed_tree"] for ref in task_refs):
+    fixed_refs = {ref for ref in task_refs
+                  if (sb.try_git(sb.origin, "rev-parse", ref + "^{tree}") or "").strip() == expected["fixed_tree"]}
+    if not fixed_refs:
         failures.append('cannot find published fix "cart repair": publish the verified tree on a task branch')
-    # The shared GitHub stub reports an existing open PR on view/list requests.
     reviewed = any(
-        call.split()[:2] in (["pr", "create"], ["pr", "view"], ["pr", "list"])
-        and "--help" not in call.split()
-        for call in sb.gh_calls()
+        pr["state"] == "OPEN" and not pr["isDraft"]
+        and pr["baseRefName"] == expected["default"]
+        and "refs/heads/" + pr["headRefName"] in fixed_refs
+        for pr in sb.inspected_prs()
     )
     if not reviewed:
         failures.append('cannot find review request "cart repair": create or inspect the existing PR')
