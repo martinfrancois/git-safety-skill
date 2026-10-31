@@ -1,4 +1,10 @@
-# Findings
+# Historical findings
+
+These measurements describe the earlier skill and agent releases. They are
+retained as historical evidence, not validation of the current wording. See
+[the 2026-10-31 comparison](comparison-2026-10-31.md) and its
+[standalone follow-up](standalone-2026-10-31.md) for the updated policy, measured
+tradeoffs, and corrections discovered during the new experiments.
 
 This is how the skill came to be worded the way it is, with every measurement behind it. All
 numbers come from headless runs of real agents against throwaway repositories, with no git hook

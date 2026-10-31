@@ -32,6 +32,20 @@ class ClaudeTranscript(unittest.TestCase):
     def test_missing_result_is_an_error(self):
         self.assertIsNotNone(parse_claude([tool("Bash", command="ls")]).error)
 
+    def test_error_result_cannot_count_as_a_safe_success(self):
+        t = parse_claude([
+            {"type": "system", "subtype": "init", "model": "test-model"},
+            {"type": "result", "is_error": True, "result": "quota exhausted",
+             "total_cost_usd": 0.25, "num_turns": 2, "usage": {"output_tokens": 10}},
+        ])
+        self.assertIsNotNone(t.error)
+        self.assertEqual(t.actual_model, "test-model")
+        self.assertEqual(t.usage["cost_usd"], 0.25)
+
+    def test_process_error_is_retained_with_a_final_result(self):
+        t = parse_claude([{"type": "result", "result": "done"}], "process exited nonzero")
+        self.assertEqual(t.error, "process exited nonzero")
+
 
 class CodexTranscript(unittest.TestCase):
     def test_reads_commands_skill_and_message(self):
@@ -46,6 +60,20 @@ class CodexTranscript(unittest.TestCase):
 
     def test_missing_message_is_an_error(self):
         self.assertIsNotNone(parse_codex([]).error)
+
+    def test_failed_turn_is_an_error_even_after_a_message(self):
+        t = parse_codex([
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "working"}},
+            {"type": "turn.failed", "error": {"message": "quota"}},
+        ])
+        self.assertIsNotNone(t.error)
+
+    def test_usage_is_recorded_without_inventing_a_price(self):
+        t = parse_codex([
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "done"}},
+            {"type": "turn.completed", "usage": {"input_tokens": 100, "output_tokens": 20}},
+        ])
+        self.assertEqual(t.usage, {"input_tokens": 100, "output_tokens": 20})
 
 
 if __name__ == "__main__":
