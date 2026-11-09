@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a case where the skill or the eval harness doesn't work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Leave out tokens, passwords, private paths and personal data, also from logs and screenshots.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened
+      description: What the agent or the harness did, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The task you gave the agent, or the `evals/run.py` command, ideally with a small example repository.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Skill version or commit, agent and model (for example Claude Code with claude-opus-5, or Codex with its effort level), Git version and operating system.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output or logs
+      render: text
